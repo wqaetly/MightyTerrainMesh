@@ -244,8 +244,14 @@
         public int maxZ { get; private set; }
         public int subdivision { get; private set; }
         public float slopeAngleErr { get; private set; }
+        /// <summary>
+        /// 单个Tile的大小，例如1000x1000的Terrian被切成2x2，那么gridSize就是500
+        /// </summary>
         public Vector2 gridSize { get; private set; }
         public int detailedSize = 1;
+        /// <summary>
+        /// 采样树的数量，例如被切成2x2，数组大小就是4，每个Tree代表一个Mesh
+        /// </summary>
         public SamplerTree[] Trees { get; private set; }
         public Vector3 center { get { return volBnd.center; } }
         private int curXIdx = 0;
@@ -267,6 +273,10 @@
         }
         private Bounds volBnd;
         private Terrain terrain;
+        
+        /// <summary>
+        /// 看起来是左上角的坐标
+        /// </summary>
         private Vector3 check_start;
         public MTTerrainScanner(Terrain t, Bounds VolumnBound, int sub, float angleErr, int mx, int mz, bool sbrd)
         {
