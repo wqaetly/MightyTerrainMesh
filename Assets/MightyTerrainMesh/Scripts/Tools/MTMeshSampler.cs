@@ -307,12 +307,53 @@
         public Vector2 uvMax = Vector2.one;
         private Dictionary<byte, KdTree<float, int>> BoundaryKDTree = new Dictionary<byte, KdTree<float, int>>();
 
+        /// <summary>
+        /// 索引的Texture，仅在此地块只包含一层纹理的时候有合法值，如果此地块包含了多层纹理混合，则值为-1
+        /// </summary>
+        public int refTextureIndex = -1;
+
+        /// <summary>
+        /// 标识此地块是否单层混合
+        /// </summary>
+        public bool isSingleBlend = false;
+
+        /// <summary>
+        /// 标识这个Tile是否已经和其余Tile合并
+        /// </summary>
+        public bool hasMerged;
+
+        /// <summary>
+        /// 记录合并的TileIndex
+        /// </summary>
+        public HashSet<(int, int)> mergedTileIndex = new HashSet<(int, int)>();
+
         public SamplerTree(int sub, Vector3 center, Vector2 size, Vector2 uv, Vector2 uvstep)
         {
             // 新建并构建整个四叉树，根据sub进行细分
             m_rootNode = new SamplerNode(sub, center, size, uv, uvstep);
             uvMin = uv - 0.5f * uvstep;
             uvMax = uv + 0.5f * uvstep;
+        }
+
+        public void UpdateRefTextureIndex(int index)
+        {
+            if (isSingleBlend)
+            {
+                return;
+            }
+            
+            if (refTextureIndex == -1)
+            {
+                isSingleBlend = true;
+                refTextureIndex = index;
+                return;
+            }
+
+            if (refTextureIndex != -1)
+            {
+                isSingleBlend = false;
+                refTextureIndex = -1;
+            }
         }
 
         private void CombineTree(float angleErr)

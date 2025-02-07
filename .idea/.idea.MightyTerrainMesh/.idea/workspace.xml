@@ -11,6 +11,8 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///Dummy.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/8ce0bd04a7a04b4b9395538239d3fdd846ac00/33/b360b1c0/Array.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/bd10720ce6684a79834ed84aaf34d496176200/48/f01e4665/Vector2.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Packages/local/com.unity.render-pipelines.universal@12.1.2/Runtime/Passes/PostProcessPass.cs" root0="SKIP_HIGHLIGHTING" />
@@ -28,7 +30,7 @@
     "Attach to Unity Editor.Attach to Unity Editor.executor": "Debug",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "Standalone Player.Start Unity.executor": "Debug",
-    "XThreadsFramesViewSplitterKey": "0.7084233"
+    "XThreadsFramesViewSplitterKey": "0.71598274"
   },
   "keyToStringList": {
     "rider.external.source.directories": [
@@ -105,16 +107,16 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Assets/MightyTerrainMesh/Scripts/Tools/MTMeshCreateJob.cs</url>
-          <line>181</line>
-          <properties documentPath="H:\Study\Madlife_TerrianMesh\MightyTerrainMesh\Assets\MightyTerrainMesh\Scripts\Tools\MTMeshCreateJob.cs" containingFunctionPresentation="Method 'ScanTree'">
+          <line>326</line>
+          <properties documentPath="H:\Study\Madlife_TerrianMesh\MightyTerrainMesh\Assets\MightyTerrainMesh\Scripts\Tools\MTMeshCreateJob.cs" containingFunctionPresentation="Method 'MergeNeighbor'">
             <startOffsets>
-              <option value="6469" />
+              <option value="11420" />
             </startOffsets>
             <endOffsets>
-              <option value="6507" />
+              <option value="11463" />
             </endOffsets>
           </properties>
-          <option name="timeStamp" value="12" />
+          <option name="timeStamp" value="45" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

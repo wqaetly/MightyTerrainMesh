@@ -188,8 +188,18 @@ public class MTMeshEditor : EditorWindow
             {
                 EditorUtility.DisplayProgressBar("saving data", "processing", (float)i / tessellationJob.mesh.Length);
                 MTMeshData data = tessellationJob.mesh[i];
+
+                if (data == null)
+                {
+                    continue;
+                }
+                
                 for (int lod = 0; lod < data.lods.Length; ++lod)
                 {
+                    if (data.lods[lod] == null)
+                    {
+                        continue;
+                    }
                     var folder = lodFolder[lod];
                     if (!AssetDatabase.IsValidFolder(Path.Combine(folder, "Meshes")))
                     {

@@ -96,6 +96,12 @@
             {
                 var lodData = new MTMeshData.LOD();
                 var tree = scanners[lod].Trees[curIdx];
+
+                if (tree.hasMerged)
+                {
+                    continue;
+                }
+                
                 RunTessellation(tree.Vertices, lodData, MinTriArea);
                 lodData.uvmin = tree.uvMin;
                 lodData.uvmax = tree.uvMax;
