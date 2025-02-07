@@ -30,7 +30,7 @@
             TextureImporter importer = AssetImporter.GetAtPath(alphaMapPath) as TextureImporter;
             if (importer == null)
             {
-                MTLog.LogError("export terrain alpha map failed");
+                Debug.LogError("export terrain alpha map failed");
                 return null;
             }
             importer.textureCompression = TextureImporterCompression.Uncompressed;
@@ -60,7 +60,7 @@
             tMat.SetTexture("_Control", alphaMap);
             if (tMat == null)
             {
-                MTLog.LogError("export terrain material failed");
+                Debug.LogError("export terrain material failed");
                 return;
             }
             for (int l = layerStart; l < layerStart + 4 && l < t.terrainData.terrainLayers.Length; ++l)
@@ -98,7 +98,7 @@
 #if UNITY_EDITOR
             if (t.terrainData == null)
             {
-                MTLog.LogError("terrain data doesn't exist");
+                Debug.LogError("terrain data doesn't exist");
                 return;
             }
             int matCount = t.terrainData.alphamapTextureCount;
@@ -131,7 +131,7 @@
             tMat.SetTexture("_Control", alphaMap);
             if (tMat == null)
             {
-                MTLog.LogError("export terrain vt diffuse material failed");
+                Debug.LogError("export terrain vt diffuse material failed");
                 return;
             }
             string bumpMatPath = string.Format("{0}/VTBump_{1}.mat", path, matIdx);
@@ -142,7 +142,7 @@
             bumpmat.SetTexture("_Control", alphaMap);
             if (bumpmat == null)
             {
-                MTLog.LogError("export terrain vt bump material failed");
+                Debug.LogError("export terrain vt bump material failed");
                 return;
             }
             for (int l = layerStart; l < layerStart + 4 && l < t.terrainData.terrainLayers.Length; ++l)
@@ -199,7 +199,7 @@
 #if UNITY_EDITOR
             if (t.terrainData == null)
             {
-                MTLog.LogError("terrain data doesn't exist");
+                Debug.LogError("terrain data doesn't exist");
                 return;
             }
             int matCount = t.terrainData.alphamapTextureCount;
@@ -291,7 +291,7 @@
 #if UNITY_EDITOR
             if (t.terrainData == null)
             {
-                MTLog.LogError("terrain data doesn't exist");
+                Debug.LogError("terrain data doesn't exist");
                 return;
             }
             int matCount = t.terrainData.alphamapTextureCount;

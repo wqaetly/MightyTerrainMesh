@@ -54,9 +54,10 @@
         }
         public void EndProcess()
         {
-            //copy borders
             MTTerrainScanner detail = LODs[0];
             detail.FillData();
+            
+            // 只有多LOD才会跑到这里
             for (int i = 1; i < LODs.Length; ++i)
             {
                 MTTerrainScanner scaner = LODs[i];
@@ -74,173 +75,15 @@
         }
     }
 
-    public class CreateDataJob
-    {
-        public MTTerrainScanner[] LODs;
-        private float min_edge_len;
-        private int curLodIdx = 0;
-        public bool IsDone
-        {
-            get
-            {
-                return curLodIdx >= LODs.Length;
-            }
-        }
-        public float progress
-        {
-            get
-            {
-                if (curLodIdx < LODs.Length)
-                {
-                    return (curLodIdx + LODs[curLodIdx].progress) / LODs.Length;
-                }
-                return 1;
-            }
-        }
-        public CreateDataJob(Terrain t, Bounds VolumnBound, int depth, MeshLODCreate[] setting, float minEdge)
-        {
-            LODs = new MTTerrainScanner[setting.Length];
-            min_edge_len = minEdge;
-            int depth_stride = Mathf.Max(1, depth / setting.Length);
-            for (int i = 0; i < setting.Length; ++i)
-            {
-                var subdiv = setting[i].Subdivision;
-                var angleErr = setting[i].SlopeAngleError;
-                var sub_depth = Mathf.Max(1, depth - i * depth_stride);
-                int grid_count = 1 << sub_depth;
-                //use last lod stitch borders to avoid tearing on the border
-                LODs[i] = new MTTerrainScanner(t, VolumnBound, subdiv, angleErr, grid_count, grid_count, i == 0);
-            }
-        }
-        public void Update()
-        {
-            if (LODs == null || IsDone)
-                return;
-            LODs[curLodIdx].Update();
-            if (LODs[curLodIdx].IsDone)
-                ++curLodIdx;
-        }
-        public void EndProcess()
-        {
-            LODs[0].FillData();
-            for (int i = 1; i<LODs.Length; ++i)
-            {
-                //copy borders
-                MTTerrainScanner detail = LODs[i - 1];
-                MTTerrainScanner scaner = LODs[i];
-                foreach (var t in scaner.Trees)
-                {
-                    t.InitBoundary();
-                    //Debug.Log("start collect boundary : ");
-                    foreach (var dt in detail.Trees)
-                    {
-                        if (t.BND.Contains(dt.BND.center))
-                        {
-                            AddBoundaryFromDetail(t, dt, min_edge_len / 2f);
-                        }
-                    }
-                }
-                scaner.FillData();
-            }
-        }
-        private byte GetBorderType(Bounds container, Bounds child)
-        {
-            byte btype = byte.MaxValue;
-            float l_border = container.center.x - container.extents.x;
-            float r_border = container.center.x + container.extents.x;
-            float l_child_border = child.center.x - child.extents.x;
-            float r_child_border = child.center.x + child.extents.x;
-            if (Mathf.Abs(l_border - l_child_border) < 0.01f)
-                btype = SamplerTree.LBorder;
-            if (Mathf.Abs(r_border - r_child_border) < 0.01f)
-                btype = SamplerTree.RBorder;
-            float b_border = container.center.z - container.extents.z;
-            float t_border = container.center.z + container.extents.z;
-            float b_child_border = child.center.z - child.extents.z;
-            float t_child_border = child.center.z + child.extents.z;
-            if (Mathf.Abs(t_border - t_child_border) < 0.01f)
-            {
-                if (btype == SamplerTree.LBorder)
-                    btype = SamplerTree.LTCorner;
-                else if (btype == SamplerTree.RBorder)
-                    btype = SamplerTree.RTCorner;
-                else
-                    btype = SamplerTree.TBorder;
-            }
-            if (Mathf.Abs(b_border - b_child_border) < 0.01f)
-            {
-                if (btype == SamplerTree.LBorder)
-                    btype = SamplerTree.LBCorner;
-                else if (btype == SamplerTree.RBorder)
-                    btype = SamplerTree.RBCorner;
-                else
-                    btype = SamplerTree.BBorder;
-            }
-            return btype;
-        }
-        private void AddBoundaryFromDetail(SamplerTree container, SamplerTree detail, float minDis)
-        {
-            byte bt = GetBorderType(container.BND, detail.BND);
-            //Debug.Log("detail type : " + bt);
-            switch(bt)
-            {
-                case SamplerTree.LBorder:
-                    container.MergeBoundary(SamplerTree.LBorder, minDis, detail.Boundaries[SamplerTree.LTCorner]);
-                    container.MergeBoundary(SamplerTree.LBorder, minDis, detail.Boundaries[SamplerTree.LBorder]);
-                    container.MergeBoundary(SamplerTree.LBorder, minDis, detail.Boundaries[SamplerTree.LBCorner]);
-                    break;
-                case SamplerTree.LTCorner:
-                    container.MergeBoundary(SamplerTree.TBorder, minDis, detail.Boundaries[SamplerTree.TBorder]);
-                    container.MergeBoundary(SamplerTree.TBorder, minDis, detail.Boundaries[SamplerTree.RTCorner]);
-                    container.MergeBoundary(SamplerTree.LTCorner, minDis, detail.Boundaries[SamplerTree.LTCorner]);
-                    container.MergeBoundary(SamplerTree.LBorder, minDis, detail.Boundaries[SamplerTree.LBorder]);
-                    container.MergeBoundary(SamplerTree.LBorder, minDis, detail.Boundaries[SamplerTree.LBCorner]);
-                    break;
-                case SamplerTree.LBCorner:
-                    container.MergeBoundary(SamplerTree.BBorder, minDis, detail.Boundaries[SamplerTree.BBorder]);
-                    container.MergeBoundary(SamplerTree.BBorder, minDis, detail.Boundaries[SamplerTree.RBCorner]);
-                    container.MergeBoundary(SamplerTree.LBCorner, minDis, detail.Boundaries[SamplerTree.LBCorner]);
-                    container.MergeBoundary(SamplerTree.LBorder, minDis, detail.Boundaries[SamplerTree.LBorder]);
-                    container.MergeBoundary(SamplerTree.LBorder, minDis, detail.Boundaries[SamplerTree.LTCorner]);
-                    break;
-                case SamplerTree.BBorder:
-                    container.MergeBoundary(SamplerTree.BBorder, minDis, detail.Boundaries[SamplerTree.BBorder]);
-                    container.MergeBoundary(SamplerTree.BBorder, minDis, detail.Boundaries[SamplerTree.LBCorner]);
-                    container.MergeBoundary(SamplerTree.BBorder, minDis, detail.Boundaries[SamplerTree.RBCorner]);
-                    break;
-                case SamplerTree.RBCorner:
-                    container.MergeBoundary(SamplerTree.BBorder, minDis, detail.Boundaries[SamplerTree.BBorder]);
-                    container.MergeBoundary(SamplerTree.BBorder, minDis, detail.Boundaries[SamplerTree.LBCorner]);
-                    container.MergeBoundary(SamplerTree.RBCorner, minDis, detail.Boundaries[SamplerTree.RBCorner]);
-                    container.MergeBoundary(SamplerTree.RBorder, minDis, detail.Boundaries[SamplerTree.RBorder]);
-                    container.MergeBoundary(SamplerTree.RBorder, minDis, detail.Boundaries[SamplerTree.RTCorner]);
-                    break;
-                case SamplerTree.RBorder:
-                    container.MergeBoundary(SamplerTree.RBorder, minDis, detail.Boundaries[SamplerTree.RTCorner]);
-                    container.MergeBoundary(SamplerTree.RBorder, minDis, detail.Boundaries[SamplerTree.RBorder]);
-                    container.MergeBoundary(SamplerTree.RBorder, minDis, detail.Boundaries[SamplerTree.RBCorner]);
-                    break;
-                case SamplerTree.RTCorner:
-                    container.MergeBoundary(SamplerTree.TBorder, minDis, detail.Boundaries[SamplerTree.TBorder]);
-                    container.MergeBoundary(SamplerTree.TBorder, minDis, detail.Boundaries[SamplerTree.LTCorner]);
-                    container.MergeBoundary(SamplerTree.RTCorner, minDis, detail.Boundaries[SamplerTree.RTCorner]);
-                    container.MergeBoundary(SamplerTree.RBorder, minDis, detail.Boundaries[SamplerTree.RBorder]);
-                    container.MergeBoundary(SamplerTree.RBorder, minDis, detail.Boundaries[SamplerTree.RBCorner]);
-                    break;
-                case SamplerTree.TBorder:
-                    container.MergeBoundary(SamplerTree.TBorder, minDis, detail.Boundaries[SamplerTree.RTCorner]);
-                    container.MergeBoundary(SamplerTree.TBorder, minDis, detail.Boundaries[SamplerTree.TBorder]);
-                    container.MergeBoundary(SamplerTree.TBorder, minDis, detail.Boundaries[SamplerTree.LTCorner]);
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-
     public class MTTerrainScanner : ITerrainTreeScaner
     {
+        /// <summary>
+        /// x方向tile数量
+        /// </summary>
         public int maxX { get; private set; }
+        /// <summary>
+        /// z方向tile数量
+        /// </summary>
         public int maxZ { get; private set; }
         public int subdivision { get; private set; }
         public float slopeAngleErr { get; private set; }
@@ -324,6 +167,8 @@
             float borderOffset = 0;
             if (curXIdx == 0 || curZIdx == 0 || curXIdx == maxX - 1 || curZIdx == maxZ - 1)
                 borderOffset = 0.000001f;
+            
+            // 先采样Tile四个顶点的信息
             RayCastBoundary(bfx + borderOffset, bfz + borderOffset,
                 detailedX, detailedZ, SamplerTree.LBCorner, sampler);
             RayCastBoundary(bfx + borderOffset, bfz + gridSize[1] - borderOffset,
@@ -332,6 +177,8 @@
                 detailedX + detailedSize - 1, detailedZ + detailedSize - 1, SamplerTree.RTCorner, sampler);
             RayCastBoundary(bfx + gridSize[0] - borderOffset, bfz + borderOffset,
                 detailedX + detailedSize - 1, detailedZ, SamplerTree.RBCorner, sampler);
+            
+            // 再根据NXN的值去逐“顶点”采样对应的顶点信息（u方向）
             for (int u = 1; u < detailedSize; ++u)
             {
                 float fx = (curXIdx + (float)u / detailedSize) * gridSize[0];
@@ -339,6 +186,7 @@
                 RayCastBoundary(fx, bfz + gridSize[1] - borderOffset,
                     u + detailedX, detailedZ + detailedSize - 1, SamplerTree.TBorder, sampler);
             }
+            // 再根据NXN的值去逐“顶点”采样对应的顶点信息（v方向）
             for (int v = 1; v < detailedSize; ++v)
             {
                 float fz = (curZIdx + (float)v / detailedSize) * gridSize[1];
@@ -347,6 +195,16 @@
                     detailedX + detailedSize - 1, v + detailedZ, SamplerTree.RBorder, sampler);
             }
         }
+        
+        /// <summary>
+        /// 对Bound打射线
+        /// </summary>
+        /// <param name="fx">世界空间x</param>
+        /// <param name="fz">世界空间z</param>
+        /// <param name="x">本地空间x</param>
+        /// <param name="z">本地空间z</param>
+        /// <param name="bk">采样目标</param>
+        /// <param name="sampler">tile的Tree</param>
         private void RayCastBoundary(float fx, float fz, int x, int z, byte bk, SamplerTree sampler)
         {
             Vector3 hitpos = check_start + fx * Vector3.right + fz * Vector3.forward;
@@ -372,6 +230,8 @@
             float fz = (curZIdx + 0.5f) * gridSize[1];
             Vector3 center = check_start + fx * Vector3.right + fz * Vector3.forward;
             Vector2 uv = new Vector2((curXIdx + 0.5f) / maxX, (curZIdx + 0.5f) / maxZ);
+            
+            // uvstep代表每个tile覆盖的uv范围的绝对值
             Vector2 uvstep = new Vector2(1f / maxX, 1f / maxZ);
             if (Trees[curXIdx * maxZ + curZIdx] == null)
             {
@@ -424,7 +284,7 @@
             SamplerTree center = GetSubTree(x, z);
             if (!center.Boundaries.ContainsKey(SamplerTree.LBCorner))
             {
-                MTLog.LogError("boundary data missing");
+                Debug.LogError("boundary data missing");
                 return;
             }
             SamplerTree right = GetSubTree(x + 1, z);
@@ -487,23 +347,25 @@
             {
                 Trees[i].FillData(slopeAngleErr);
             }
-            //stitch the border
+
             float minDis = Mathf.Min(gridSize.x, gridSize.y) / detailedSize / 2f;
             for (int x = 0; x < maxX; ++x)
             {
                 for (int z = 0; z < maxZ; ++z)
                 {
                     SamplerTree center = GetSubTree(x, z);
-                    //corners
+                    // 缝合4个角
                     StitchCorner(x, z);
-                    //borders
+                    
+                    // 缝合4个边
                     center.StitchBorder(SamplerTree.BBorder, SamplerTree.TBorder, minDis, GetSubTree(x, z - 1));
                     center.StitchBorder(SamplerTree.LBorder, SamplerTree.RBorder, minDis, GetSubTree(x - 1, z));
                     center.StitchBorder(SamplerTree.RBorder, SamplerTree.LBorder, minDis, GetSubTree(x + 1, z));
                     center.StitchBorder(SamplerTree.TBorder, SamplerTree.BBorder, minDis, GetSubTree(x, z + 1));
                 }
             }
-            //merge boundary with verts for tessallation
+            
+            // 将缝合的顶点加入Mesh顶点，用于生成正确的Mesh
             for (int i = 0; i < Trees.Length; ++i)
             {
                 foreach (var l in Trees[i].Boundaries.Values)

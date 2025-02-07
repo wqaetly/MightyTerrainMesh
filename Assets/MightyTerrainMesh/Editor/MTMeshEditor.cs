@@ -133,17 +133,19 @@ public class MTMeshEditor : EditorWindow
         {
             if (LODSettings == null || LODSettings.Length == 0)
             {
-                MTLog.LogError("no lod setting");
+                Debug.LogError("no lod setting");
                 return;
             }
             if (terrainTarget == null)
             {
-                MTLog.LogError("no target terrain");
+                Debug.LogError("no target terrain");
                 return;
             }
             int gridMax = 1 << QuadTreeDepth;
             var tBnd = new Bounds(terrainTarget.transform.TransformPoint(terrainTarget.terrainData.bounds.center),
                 terrainTarget.terrainData.bounds.size);
+            
+            // CreateMeshJob搜集整理整个Terrian的信息，为后续的Mesh生成做准备
             dataCreateJob = new CreateMeshJob(terrainTarget, tBnd, gridMax, gridMax, LODSettings);
             for (int i = 0; i < int.MaxValue; ++i)
             {
@@ -153,7 +155,7 @@ public class MTMeshEditor : EditorWindow
                     break;
             }
             dataCreateJob.EndProcess();
-            //caculate min_tri size
+            
             int max_sub = 1;
             foreach(var setting in LODSettings)
             {
@@ -163,7 +165,8 @@ public class MTMeshEditor : EditorWindow
             float max_sub_grids = gridMax * (1 << max_sub);
             float minArea = Mathf.Max(terrainTarget.terrainData.bounds.size.x, terrainTarget.terrainData.bounds.size.z) / max_sub_grids;
             minArea = minArea * minArea / 8f;
-            //
+            
+            // 正式开始生成Mesh
             tessellationJob = new TessellationJob(dataCreateJob.LODs, minArea);
             for (int i = 0; i < int.MaxValue; ++i)
             {
@@ -178,7 +181,8 @@ public class MTMeshEditor : EditorWindow
                 string guid = AssetDatabase.CreateFolder("Assets", string.Format("{0}_LOD{1}", terrainTarget.name, i));
                 lodFolder[i] = AssetDatabase.GUIDToAssetPath(guid);
             }
-            //save meshes
+            
+            // 保存Mesh
             List<MeshPrefabBaker> bakers = new List<MeshPrefabBaker>();
             for (int i = 0; i < tessellationJob.mesh.Length; ++i)
             {

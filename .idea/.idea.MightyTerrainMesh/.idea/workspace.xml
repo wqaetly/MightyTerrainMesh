@@ -11,6 +11,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/8ce0bd04a7a04b4b9395538239d3fdd846ac00/33/b360b1c0/Array.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/bd10720ce6684a79834ed84aaf34d496176200/48/f01e4665/Vector2.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Packages/local/com.unity.render-pipelines.universal@12.1.2/Runtime/Passes/PostProcessPass.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
@@ -27,7 +28,7 @@
     "Attach to Unity Editor.Attach to Unity Editor.executor": "Debug",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "Standalone Player.Start Unity.executor": "Debug",
-    "XThreadsFramesViewSplitterKey": "0.49460045"
+    "XThreadsFramesViewSplitterKey": "0.7084233"
   },
   "keyToStringList": {
     "rider.external.source.directories": [
@@ -91,45 +92,6 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Assets/MightyTerrainMesh/Editor/MTMeshEditor.cs</url>
-          <line>146</line>
-          <properties documentPath="H:\Study\Madlife_TerrianMesh\MightyTerrainMesh\Assets\MightyTerrainMesh\Editor\MTMeshEditor.cs" containingFunctionPresentation="Method 'OnGUI'">
-            <startOffsets>
-              <option value="5154" />
-            </startOffsets>
-            <endOffsets>
-              <option value="5240" />
-            </endOffsets>
-          </properties>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DotNet Breakpoints">
-          <url>file://$PROJECT_DIR$/Assets/MightyTerrainMesh/Scripts/Tools/MTMeshCreateJob.cs</url>
-          <line>282</line>
-          <properties documentPath="H:\Study\Madlife_TerrianMesh\MightyTerrainMesh\Assets\MightyTerrainMesh\Scripts\Tools\MTMeshCreateJob.cs" containingFunctionPresentation="Constructor 'MTTerrainScanner'">
-            <startOffsets>
-              <option value="12307" />
-            </startOffsets>
-            <endOffsets>
-              <option value="12319" />
-            </endOffsets>
-          </properties>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DotNet Breakpoints">
-          <url>file://$PROJECT_DIR$/Assets/MightyTerrainMesh/Editor/MTMeshEditor.cs</url>
-          <line>105</line>
-          <properties documentPath="H:\Study\Madlife_TerrianMesh\MightyTerrainMesh\Assets\MightyTerrainMesh\Editor\MTMeshEditor.cs" containingFunctionPresentation="Method 'OnGUI'">
-            <startOffsets>
-              <option value="3479" />
-            </startOffsets>
-            <endOffsets>
-              <option value="3512" />
-            </endOffsets>
-          </properties>
-          <option name="timeStamp" value="4" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DotNet Breakpoints">
-          <url>file://$PROJECT_DIR$/Assets/MightyTerrainMesh/Editor/MTMeshEditor.cs</url>
           <line>22</line>
           <properties documentPath="H:\Study\Madlife_TerrianMesh\MightyTerrainMesh\Assets\MightyTerrainMesh\Editor\MTMeshEditor.cs" containingFunctionPresentation="Method 'OnGUIDraw'">
             <startOffsets>
@@ -140,6 +102,19 @@
             </endOffsets>
           </properties>
           <option name="timeStamp" value="5" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Assets/MightyTerrainMesh/Scripts/Tools/MTMeshCreateJob.cs</url>
+          <line>181</line>
+          <properties documentPath="H:\Study\Madlife_TerrianMesh\MightyTerrainMesh\Assets\MightyTerrainMesh\Scripts\Tools\MTMeshCreateJob.cs" containingFunctionPresentation="Method 'ScanTree'">
+            <startOffsets>
+              <option value="6469" />
+            </startOffsets>
+            <endOffsets>
+              <option value="6507" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="12" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

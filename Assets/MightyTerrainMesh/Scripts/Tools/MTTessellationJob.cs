@@ -31,6 +31,13 @@
         }
         public float MinTriArea { get; private set; }
         protected int curIdx = 0;
+        
+        /// <summary>
+        /// 正式开始调用三角化库生成Mesh
+        /// </summary>
+        /// <param name="lVerts"></param>
+        /// <param name="lod"></param>
+        /// <param name="minTriArea"></param>
         protected void RunTessellation(List<SampleVertexData> lVerts, MTMeshData.LOD lod, float minTriArea)
         {
             if (lVerts.Count < 3)
@@ -83,7 +90,7 @@
         {
             if (IsDone)
                 return;
-            mesh[curIdx] = new MTMeshData(curIdx, scanners[0].Trees[curIdx].BND);
+            mesh[curIdx] = new MTMeshData(curIdx);
             mesh[curIdx].lods = new MTMeshData.LOD[scanners.Length];
             for (int lod = 0; lod < scanners.Length; ++lod)
             {
@@ -94,46 +101,6 @@
                 lodData.uvmax = tree.uvMax;
                 mesh[curIdx].lods[lod] = lodData;
             }
-            //update idx
-            ++curIdx;
-        }
-    }
-
-    public class TessellationDataJob : TessellationJob
-    {
-        List<SamplerTree> subTrees = new List<SamplerTree>();
-        List<int> lodLvArr = new List<int>();
-        public TessellationDataJob(MTTerrainScanner[] s, float minTriArea) : base(s, minTriArea)
-        {
-            int totalLen = 0;
-            foreach(var scaner in scanners)
-            {
-                totalLen += scaner.Trees.Length;
-                lodLvArr.Add(totalLen);
-                subTrees.AddRange(scaner.Trees);
-            }
-            mesh = new MTMeshData[subTrees.Count];
-        }
-        private int GetLodLv(int idx)
-        {
-            for(int i=0; i<lodLvArr.Count; ++i)
-            {
-                if (idx < lodLvArr[i])
-                    return i;
-            }
-            return 0;
-        }
-        public override void Update()
-        {
-            if (IsDone)
-                return;
-            var lodLv = GetLodLv(curIdx);
-            mesh[curIdx] = new MTMeshData(curIdx, subTrees[curIdx].BND, lodLv);
-            mesh[curIdx].lods = new MTMeshData.LOD[1];
-            var lodData = new MTMeshData.LOD();
-            var tree = subTrees[curIdx];
-            RunTessellation(tree.Vertices, lodData, MinTriArea);
-            mesh[curIdx].lods[0] = lodData;
             //update idx
             ++curIdx;
         }
