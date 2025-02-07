@@ -8,6 +8,7 @@
     public class TessellationJob
     {
         public MTMeshData[] mesh;
+        public MTMeshData[,] mesh_TwoArray;
         public MTTerrainScanner[] scanners;
         public bool IsDone
         {
@@ -51,23 +52,29 @@
                 var vert = lVerts[i];
                 geometry.AddPoint(vert.Position.x, lVerts[i].Position.z, 0);
             }
+
             TriangleNet.Mesh meshRepresentation = new TriangleNet.Mesh();
             meshRepresentation.Triangulate(geometry);
+            
             if (meshRepresentation.Vertices.Count != lVerts.Count)
             {
                 Debug.LogError("trianglate seems failed");
             }
             int vIdx = 0;
-            lod.vertices = new Vector3[meshRepresentation.Vertices.Count];
-            lod.normals = new Vector3[meshRepresentation.Vertices.Count];
-            lod.uvs = new Vector2[meshRepresentation.Vertices.Count];
-            lod.faces = new int[meshRepresentation.triangles.Count * 3];
+            lod.vertices = new List<Vector3>(meshRepresentation.Vertices.Count);
+            lod.normals = new List<Vector3>(meshRepresentation.Vertices.Count);
+            lod.uvs = new List<Vector2>(meshRepresentation.Vertices.Count);
+            lod.faces = new List<int>(meshRepresentation.triangles.Count * 3);
+            
             foreach (var v in meshRepresentation.Vertices)
             {
-                lod.vertices[vIdx] = new Vector3(v.x, lVerts[vIdx].Position.y, v.y);
-                lod.normals[vIdx] = lVerts[vIdx].Normal;
+                lod.vertices.Add(new Vector3(v.x, lVerts[vIdx].Position.y, v.y));
+                lod.normals.Add(lVerts[vIdx].Normal);
+                
                 var uv = lVerts[vIdx].UV;
-                lod.uvs[vIdx] = uv;
+                
+                lod.uvs.Add(uv);
+                
                 ++vIdx;
             }
             vIdx = 0;
@@ -80,9 +87,11 @@
                        (p[1].x - p[0].x) * (p[2].y - p[0].y)) / 2.0f;
                 if (triarea < minTriArea)
                     continue;
-                lod.faces[vIdx] = t.P2;
-                lod.faces[vIdx + 1] = t.P1;
-                lod.faces[vIdx + 2] = t.P0;
+                
+                lod.faces.Add(t.P2);
+                lod.faces.Add(t.P1);
+                lod.faces.Add(t.P0);
+                
                 vIdx += 3;
             }
         }
@@ -96,15 +105,12 @@
             {
                 var lodData = new MTMeshData.LOD();
                 var tree = scanners[lod].Trees[curIdx];
-
-                if (tree.hasMerged)
-                {
-                    continue;
-                }
-                
                 RunTessellation(tree.Vertices, lodData, MinTriArea);
                 lodData.uvmin = tree.uvMin;
                 lodData.uvmax = tree.uvMax;
+                
+                // 记录samplerTree用于mesh合并
+                lodData.samplerTree = tree;
                 mesh[curIdx].lods[lod] = lodData;
             }
             //update idx

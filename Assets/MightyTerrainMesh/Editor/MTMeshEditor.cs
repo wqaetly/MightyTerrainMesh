@@ -9,6 +9,7 @@ using MightyTerrainMesh;
 public class MTLODSetting : MeshLODCreate
 {
     public bool bEditorUIFoldout = true;
+
     public virtual void OnGUIDraw(int idx)
     {
         bEditorUIFoldout = EditorGUILayout.Foldout(bEditorUIFoldout, string.Format("LOD {0}", idx));
@@ -22,6 +23,7 @@ public class MTLODSetting : MeshLODCreate
                 curRate = Mathf.NextPowerOfTwo(sampleRate);
                 Subdivision = Mathf.FloorToInt(Mathf.Log(curRate, 2));
             }
+
             var error = EditorGUILayout.FloatField("Slope Angle Error", SlopeAngleError);
             SlopeAngleError = Mathf.Max(0.01f, error);
             EditorGUI.indentLevel--;
@@ -36,8 +38,14 @@ internal class MeshTextureBaker
     public Material layer0 { get; private set; }
     public Material layer1 { get; private set; }
     public Texture2D BakeResult { get; set; }
-    public int Size { get { return texSize; } }
+
+    public int Size
+    {
+        get { return texSize; }
+    }
+
     private int texSize = 32;
+
     public MeshTextureBaker(int size, Vector2 min, Vector2 max, Material m0, Material m1)
     {
         texSize = size;
@@ -48,12 +56,14 @@ internal class MeshTextureBaker
         BakeResult = new Texture2D(texSize, texSize, TextureFormat.ARGB32, false);
     }
 }
+
 internal class MeshPrefabBaker
 {
     public int lod { get; private set; }
     public int meshId { get; private set; }
     public Mesh mesh { get; private set; }
     public Vector4 scaleOffset { get; private set; }
+
     public MeshPrefabBaker(int i, int mid, Mesh m, Vector2 uvMin, Vector2 uvMax)
     {
         lod = i;
@@ -75,6 +85,7 @@ public class MTMeshEditor : EditorWindow
     {
         EditorWindow.CreateWindow<MTMeshEditor>();
     }
+
     //properties
     private int QuadTreeDepth = 2;
     private MTLODSetting[] LODSettings = new MTLODSetting[0];
@@ -82,18 +93,24 @@ public class MTMeshEditor : EditorWindow
     private bool genUV2 = false;
     private int lodCount = 1;
     private bool bakeMaterial = false;
+
     private int bakeTextureSize = 2048;
+
     //
     private CreateMeshJob dataCreateJob;
+
     private TessellationJob tessellationJob;
+
     //
     private void OnGUI()
     {
-        Terrain curentTarget = EditorGUILayout.ObjectField("Convert Target",terrainTarget, typeof(Terrain), true) as Terrain;
+        Terrain curentTarget =
+            EditorGUILayout.ObjectField("Convert Target", terrainTarget, typeof(Terrain), true) as Terrain;
         if (curentTarget != terrainTarget)
         {
             terrainTarget = curentTarget;
         }
+
         int curSliceCount = Mathf.FloorToInt(Mathf.Pow(2, QuadTreeDepth));
         int sliceCount = EditorGUILayout.IntField("Slice Count(NxN)", curSliceCount);
         if (sliceCount != curSliceCount)
@@ -101,19 +118,22 @@ public class MTMeshEditor : EditorWindow
             curSliceCount = Mathf.NextPowerOfTwo(sliceCount);
             QuadTreeDepth = Mathf.FloorToInt(Mathf.Log(curSliceCount, 2));
         }
+
         if (lodCount != LODSettings.Length)
         {
             MTLODSetting[] old = LODSettings;
             LODSettings = new MTLODSetting[lodCount];
-            for (int i=0; i<Mathf.Min(lodCount, old.Length); ++i)
+            for (int i = 0; i < Mathf.Min(lodCount, old.Length); ++i)
             {
                 LODSettings[i] = old[i];
             }
+
             for (int i = Mathf.Min(lodCount, old.Length); i < Mathf.Max(lodCount, old.Length); ++i)
             {
                 LODSettings[i] = new MTLODSetting();
             }
         }
+
         lodCount = EditorGUILayout.IntField("LOD Count", LODSettings.Length);
         if (LODSettings.Length > 0)
         {
@@ -122,12 +142,14 @@ public class MTMeshEditor : EditorWindow
                 LODSettings[i].OnGUIDraw(i);
             EditorGUI.indentLevel--;
         }
+
         bakeMaterial = EditorGUILayout.ToggleLeft("Bake Material", bakeMaterial);
         if (bakeMaterial)
         {
             bakeTextureSize = EditorGUILayout.IntField("Bake Texture Size", bakeTextureSize);
             bakeTextureSize = Mathf.NextPowerOfTwo(bakeTextureSize);
         }
+
         genUV2 = EditorGUILayout.ToggleLeft("Generate UV2", genUV2);
         if (GUILayout.Button("Generate"))
         {
@@ -136,15 +158,17 @@ public class MTMeshEditor : EditorWindow
                 Debug.LogError("no lod setting");
                 return;
             }
+
             if (terrainTarget == null)
             {
                 Debug.LogError("no target terrain");
                 return;
             }
+
             int gridMax = 1 << QuadTreeDepth;
             var tBnd = new Bounds(terrainTarget.transform.TransformPoint(terrainTarget.terrainData.bounds.center),
                 terrainTarget.terrainData.bounds.size);
-            
+
             // CreateMeshJob搜集整理整个Terrian的信息，为后续的Mesh生成做准备
             dataCreateJob = new CreateMeshJob(terrainTarget, tBnd, gridMax, gridMax, LODSettings);
             for (int i = 0; i < int.MaxValue; ++i)
@@ -154,18 +178,22 @@ public class MTMeshEditor : EditorWindow
                 if (dataCreateJob.IsDone)
                     break;
             }
+
             dataCreateJob.EndProcess();
-            
+
             int max_sub = 1;
-            foreach(var setting in LODSettings)
+            foreach (var setting in LODSettings)
             {
                 if (setting.Subdivision > max_sub)
                     max_sub = setting.Subdivision;
             }
+
             float max_sub_grids = gridMax * (1 << max_sub);
-            float minArea = Mathf.Max(terrainTarget.terrainData.bounds.size.x, terrainTarget.terrainData.bounds.size.z) / max_sub_grids;
+            float minArea =
+                Mathf.Max(terrainTarget.terrainData.bounds.size.x, terrainTarget.terrainData.bounds.size.z) /
+                max_sub_grids;
             minArea = minArea * minArea / 8f;
-            
+
             // 正式开始生成Mesh
             tessellationJob = new TessellationJob(dataCreateJob.LODs, minArea);
             for (int i = 0; i < int.MaxValue; ++i)
@@ -175,13 +203,28 @@ public class MTMeshEditor : EditorWindow
                 if (tessellationJob.IsDone)
                     break;
             }
+
             string[] lodFolder = new string[LODSettings.Length];
             for (int i = 0; i < LODSettings.Length; ++i)
             {
                 string guid = AssetDatabase.CreateFolder("Assets", string.Format("{0}_LOD{1}", terrainTarget.name, i));
                 lodFolder[i] = AssetDatabase.GUIDToAssetPath(guid);
             }
-            
+
+            int logLength = (int)Mathf.Sqrt(tessellationJob.mesh.Length);
+            tessellationJob.mesh_TwoArray = new MTMeshData[logLength, logLength];
+
+            // 合并tessellationJob生成的Mesh
+            for (int i = 0; i < tessellationJob.mesh.Length; ++i)
+            {
+                tessellationJob.mesh_TwoArray[i / logLength, i % logLength] = tessellationJob.mesh[i];
+            }
+
+            dataCreateJob.LODs[0].MergeMesh(tessellationJob, logLength, logLength);
+
+            AssetDatabase.StartAssetEditing();
+
+            Mesh[] meshResult = new Mesh[tessellationJob.mesh.Length];
             // 保存Mesh
             List<MeshPrefabBaker> bakers = new List<MeshPrefabBaker>();
             for (int i = 0; i < tessellationJob.mesh.Length; ++i)
@@ -193,24 +236,31 @@ public class MTMeshEditor : EditorWindow
                 {
                     continue;
                 }
-                
+
                 for (int lod = 0; lod < data.lods.Length; ++lod)
                 {
-                    if (data.lods[lod] == null)
+                    if (data.lods[lod] == null || data.lods[lod].samplerTree.hasMerged)
                     {
                         continue;
                     }
+
                     var folder = lodFolder[lod];
                     if (!AssetDatabase.IsValidFolder(Path.Combine(folder, "Meshes")))
                     {
                         AssetDatabase.CreateFolder(folder, "Meshes");
                         AssetDatabase.Refresh();
                     }
+
                     var mesh = SaveMesh(folder + "/Meshes", data.meshId, data.lods[lod], genUV2);
+                    meshResult[i] = mesh;
                     var baker = new MeshPrefabBaker(lod, data.meshId, mesh, data.lods[lod].uvmin, data.lods[lod].uvmax);
                     bakers.Add(baker);
                 }
             }
+
+            AssetDatabase.StopAssetEditing();
+            AssetDatabase.Refresh();
+
             //bake mesh prefab
             GameObject[] prefabRoot = new GameObject[LODSettings.Length];
             if (bakeMaterial)
@@ -223,11 +273,12 @@ public class MTMeshEditor : EditorWindow
                 var folder = lodFolder[0];
                 List<string> matPath = new List<string>();
                 MTMatUtils.SaveMixMaterials(folder, curentTarget.name, curentTarget, matPath);
-                foreach(var p in matPath)
+                foreach (var p in matPath)
                 {
                     var m = AssetDatabase.LoadAssetAtPath<Material>(p);
                     mats.Add(m);
-                }                
+                }
+
                 for (int i = 0; i < bakers.Count; ++i)
                 {
                     EditorUtility.DisplayProgressBar("saving data", "processing", (float)i / bakers.Count);
@@ -237,6 +288,7 @@ public class MTMeshEditor : EditorWindow
                     {
                         prefabRoot[baker.lod] = new GameObject(curentTarget.name);
                     }
+
                     GameObject meshGo = new GameObject(baker.meshId.ToString());
                     var filter = meshGo.AddComponent<MeshFilter>();
                     filter.mesh = baker.mesh;
@@ -245,17 +297,20 @@ public class MTMeshEditor : EditorWindow
                     meshGo.transform.parent = prefabRoot[baker.lod].transform;
                 }
             }
+
             //
-            for (int i=prefabRoot.Length - 1; i>= 0; --i)
+            for (int i = prefabRoot.Length - 1; i >= 0; --i)
             {
                 var folder = lodFolder[i];
                 PrefabUtility.SaveAsPrefabAsset(prefabRoot[i], folder + "/" + curentTarget.name + ".prefab");
                 DestroyImmediate(prefabRoot[i]);
             }
+
             EditorUtility.ClearProgressBar();
             AssetDatabase.Refresh();
         }
     }
+
     void FullBakeMeshes(List<MeshPrefabBaker> bakers, Terrain curentTarget, string[] lodFolder, GameObject[] prefabRoot)
     {
         //reload Mats
@@ -275,6 +330,7 @@ public class MTMeshEditor : EditorWindow
                 AssetDatabase.CreateFolder(folder, "Textures");
                 AssetDatabase.Refresh();
             }
+
             //Debug.Log("mesh id : " + baker.meshId + " scale offset : " + baker.scaleOffset);
             var albeto = string.Format("{0}/Textures/albeto_{1}.png", folder, baker.meshId);
             SaveBakedTexture(albeto, renderTexture, texture, arrAlbetoMats, baker.scaleOffset);
@@ -288,6 +344,7 @@ public class MTMeshEditor : EditorWindow
                 AssetDatabase.CreateFolder(folder, "Materials");
                 AssetDatabase.Refresh();
             }
+
             var matPath = string.Format("{0}/Materials/mat_{1}.mat", folder, baker.meshId);
             SaveBakedMaterial(matPath, albetoTex, normalTex, new Vector2(baker.scaleOffset.x, baker.scaleOffset.y));
             AssetDatabase.Refresh();
@@ -296,6 +353,7 @@ public class MTMeshEditor : EditorWindow
             {
                 prefabRoot[baker.lod] = new GameObject(curentTarget.name);
             }
+
             GameObject meshGo = new GameObject(baker.meshId.ToString());
             var filter = meshGo.AddComponent<MeshFilter>();
             filter.mesh = baker.mesh;
@@ -303,6 +361,7 @@ public class MTMeshEditor : EditorWindow
             renderer.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(matPath);
             meshGo.transform.parent = prefabRoot[baker.lod].transform;
         }
+
         RenderTexture.ReleaseTemporary(renderTexture);
         foreach (var mat in arrAlbetoMats)
             DestroyImmediate(mat);
@@ -310,24 +369,28 @@ public class MTMeshEditor : EditorWindow
             DestroyImmediate(mat);
         DestroyImmediate(texture);
     }
+
     Mesh SaveMesh(string folder, int dataID, MTMeshData.LOD data, bool genUV2)
     {
         Mesh mesh = new Mesh();
-        mesh.vertices = data.vertices;
-        mesh.normals = data.normals;
-        mesh.uv = data.uvs;
+        mesh.vertices = data.vertices.ToArray();
+        mesh.normals = data.normals.ToArray();
+        mesh.uv = data.uvs.ToArray();
         if (genUV2)
         {
-            mesh.uv2 = data.uvs;
+            mesh.uv2 = data.uvs.ToArray();
         }
-        mesh.triangles = data.faces;
+
+        mesh.triangles = data.faces.ToArray();
         AssetDatabase.CreateAsset(mesh, string.Format("{0}/{1}.mesh", folder, dataID));
         return mesh;
     }
-    void SaveBakedTexture(string path, RenderTexture renderTexture, Texture2D texture, Material[] arrMats, Vector4 scaleOffset)
+
+    void SaveBakedTexture(string path, RenderTexture renderTexture, Texture2D texture, Material[] arrMats,
+        Vector4 scaleOffset)
     {
         //don't know why, need render twice to make the uv work correct
-        for (int loop=0; loop<2; ++loop)
+        for (int loop = 0; loop < 2; ++loop)
         {
             Graphics.Blit(null, renderTexture, arrMats[0]);
             arrMats[0].SetVector("_BakeScaleOffset", scaleOffset);
@@ -336,15 +399,18 @@ public class MTMeshEditor : EditorWindow
                 Graphics.Blit(null, renderTexture, arrMats[1]);
                 arrMats[1].SetVector("_BakeScaleOffset", scaleOffset);
             }
+
             RenderTexture previous = RenderTexture.active;
             RenderTexture.active = renderTexture;
             texture.ReadPixels(new Rect(Vector2.zero, new Vector2(texture.width, texture.height)), 0, 0);
             texture.Apply();
             RenderTexture.active = previous;
         }
+
         byte[] tga = texture.EncodeToTGA();
         File.WriteAllBytes(path, tga);
     }
+
     void SaveBakedMaterial(string path, Texture2D albeto, Texture2D normal, Vector2 size)
     {
         var scale = new Vector2(1f / size.x, 1f / size.y);

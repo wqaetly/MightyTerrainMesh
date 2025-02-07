@@ -261,18 +261,24 @@
                 foreach (var l in Trees[i].Boundaries.Values)
                     Trees[i].Vertices.AddRange(l);
             }
+            
+        }
 
-            // 判断相邻Tree是否都只有一层材质纹理，如果是则合并
-            for (int x = 0; x < maxX; ++x)
+        private TessellationJob m_tessellationJob;
+        private int xLength;
+        private int zLength;
+
+        public void MergeMesh(TessellationJob tessellationJob, int xLength, int zLength)
+        {
+            m_tessellationJob = tessellationJob;
+            this.xLength = xLength;
+            this.zLength = zLength;
+            
+            for (int x = 0; x < xLength; x++)
             {
-                for (int z = 0; z < maxZ; ++z)
+                for (int z = 0; z < zLength; z++)
                 {
-                    SamplerTree center = GetSubTree(x, z);
-
-                    if (center.hasMerged)
-                    {
-                        continue;
-                    }
+                    var center = tessellationJob.mesh_TwoArray[x,z];
 
                     MergeNeighbor(center, x, z, center.isSingleBlend);
                 }
@@ -282,18 +288,23 @@
         /// <summary>
         /// 合并周边Tile
         /// </summary>
-        private void MergeNeighbor(SamplerTree samplerTree, int x, int z, bool singleBlend)
+        private void MergeNeighbor(MTMeshData mtMeshData, int x, int z, bool singleBlend)
         {
-            if (samplerTree.isSingleBlend != singleBlend)
+            if (mtMeshData.isSingleBlend != singleBlend)
             {
                 return;
             }
 
             // x,z是mergeHolder将要merge的目标tree索引
             // mergeHolder是merge的发起方，holderx，holderz代表mergeHolder的索引
-            void MergeInternal(int x, int z, SamplerTree mergeHolder, int holderx, int holderz)
+            void MergeInternal(int x, int z, MTMeshData mergeHolder, int holderx, int holderz)
             {
-                var tree = GetSubTree(x, z);
+                if (x < 0 || z < 0 || x >= this.xLength || z >=  this.zLength)
+                {
+                    return;
+                }
+                
+                var tree = m_tessellationJob.mesh_TwoArray[x,z];
 
                 if (tree != null && !tree.hasMerged && tree.isSingleBlend == singleBlend &&
                     !tree.mergedTileIndex.Contains((holderx, holderz)) && !mergeHolder.mergedTileIndex.Contains((x, z)))
@@ -306,9 +317,7 @@
                             tree.mergedTileIndex.Add((holderx, holderz));
                             mergeHolder.mergedTileIndex.Add((x, z));
                             
-                            MergeNeighbor(tree, x, z, tree.isSingleBlend);
-
-                            mergeHolder.Vertices.AddRange(tree.Vertices);
+                            mergeHolder.lods[0].Merge(tree.lods[0]);
                         }
                     }
                     else
@@ -316,22 +325,19 @@
                         tree.hasMerged = true;
                         tree.mergedTileIndex.Add((holderx, holderz));
                         mergeHolder.mergedTileIndex.Add((x, z));
-                        
-                        MergeNeighbor(tree, x, z, tree.isSingleBlend);
-
-                        mergeHolder.Vertices.AddRange(tree.Vertices);
+                        mergeHolder.lods[0].Merge(tree.lods[0]);
                     }
                 }
             }
 
-            MergeInternal(x + 1, z, samplerTree, x, z);
-            MergeInternal(x - 1, z, samplerTree, x, z);
-            MergeInternal(x + 1, z + 1, samplerTree, x, z);
-            MergeInternal(x, z + 1, samplerTree, x, z);
-            MergeInternal(x - 1, z + 1, samplerTree, x, z);
-            MergeInternal(x - 1, z - 1, samplerTree, x, z);
-            MergeInternal(x, z - 1, samplerTree, x, z);
-            MergeInternal(x + 1, z - 1, samplerTree, x, z);
+            MergeInternal(x + 1, z, m_tessellationJob.mesh_TwoArray[x,z], x, z);
+            MergeInternal(x - 1, z, m_tessellationJob.mesh_TwoArray[x,z], x, z);
+            MergeInternal(x + 1, z + 1, m_tessellationJob.mesh_TwoArray[x,z], x, z);
+            MergeInternal(x, z + 1, m_tessellationJob.mesh_TwoArray[x,z], x, z);
+            MergeInternal(x - 1, z + 1, m_tessellationJob.mesh_TwoArray[x,z], x, z);
+            MergeInternal(x - 1, z - 1, m_tessellationJob.mesh_TwoArray[x,z], x, z);
+            MergeInternal(x, z - 1, m_tessellationJob.mesh_TwoArray[x,z], x, z);
+            MergeInternal(x + 1, z - 1, m_tessellationJob.mesh_TwoArray[x,z], x, z);
         }
 
         public void Update()
