@@ -315,7 +315,7 @@
         /// <summary>
         /// 标识此地块是否单层混合
         /// </summary>
-        public bool isSingleBlend = false;
+        public bool isSingleBlend = true;
 
         /// <summary>
         /// 标识这个Tile是否已经和其余Tile合并
@@ -337,7 +337,7 @@
 
         public void UpdateRefTextureIndex(int index)
         {
-            if (isSingleBlend)
+            if (!isSingleBlend)
             {
                 return;
             }
@@ -348,8 +348,8 @@
                 refTextureIndex = index;
                 return;
             }
-
-            if (refTextureIndex != -1)
+            
+            if (index != refTextureIndex)
             {
                 isSingleBlend = false;
                 refTextureIndex = -1;

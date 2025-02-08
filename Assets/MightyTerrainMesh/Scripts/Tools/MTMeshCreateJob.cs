@@ -140,7 +140,7 @@
         /// <summary>
         /// terrian的splatmap信息，x，y代表纹素坐标，z代表splatalpha索引，例如地形用了一张SlpatAlpha图，且各个通道都存储了layar的混合信息，那么z就会有4个维度
         /// </summary>
-        private float[,,] m_splatmapInfo;
+        private Texture2D m_splatmapInfo;
 
         private int m_splatHeight;
         private int m_splatWidth;
@@ -168,8 +168,7 @@
 
             m_splatHeight = t.terrainData.alphamapHeight;
             m_splatWidth = t.terrainData.alphamapWidth;
-            m_splatmapInfo =
-                t.terrainData.GetAlphamaps(0, 0, t.terrainData.alphamapWidth, t.terrainData.alphamapHeight);
+            m_splatmapInfo = t.terrainData.GetAlphamapTexture(0);
         }
 
         public SamplerTree GetSubTree(int x, int z)
@@ -229,6 +228,45 @@
                 RayCastBoundary(bfx + gridSize[0] - borderOffset, fz,
                     detailedX + detailedSize - 1, v + detailedZ, SamplerTree.RBorder, sampler);
             }
+
+            // 采样splatmap，获取混合信息
+            float scaleRate = gridSize.x * 1.0f / terrain.terrainData.bounds.size.x;
+            var startPoint = new Vector2(bfx, bfz) / new Vector2(terrain.terrainData.bounds.size.x, terrain.terrainData.bounds.size.z) * m_splatWidth;
+            int sampleCount = Mathf.CeilToInt(scaleRate * m_splatWidth);
+
+            // 逐纹素采样
+            for (int i = 0; i < sampleCount; i++)
+            {
+                for (int j = 0; j < sampleCount; j++)
+                {
+                    // 获取splat信息
+                    int targetXInSplat =
+                        Mathf.FloorToInt(Mathf.Clamp(startPoint.x + i, 0, 511));
+                    int targetZInSplat =
+                        Mathf.FloorToInt(Mathf.Clamp((startPoint.y + j), 0,
+                            511));
+                    
+                    // TODO 临时测试
+                    // 取三个通道的Weight，看谁为1
+                    var color = m_splatmapInfo.GetPixel(targetXInSplat, targetZInSplat); 
+
+                    if (color.r != 0)
+                    {
+                        sampler.UpdateRefTextureIndex(0);
+                    }
+
+                    if (color.g != 0)
+                    {
+                        sampler.UpdateRefTextureIndex(1);
+                    }
+
+                    if (color.b != 0)
+                    {
+                        sampler.UpdateRefTextureIndex(2);
+                    }
+                    
+                }
+            }
         }
 
         public void FillData()
@@ -261,7 +299,6 @@
                 foreach (var l in Trees[i].Boundaries.Values)
                     Trees[i].Vertices.AddRange(l);
             }
-            
         }
 
         private TessellationJob m_tessellationJob;
@@ -273,13 +310,12 @@
             m_tessellationJob = tessellationJob;
             this.xLength = xLength;
             this.zLength = zLength;
-            
+
             for (int x = 0; x < xLength; x++)
             {
                 for (int z = 0; z < zLength; z++)
                 {
-                    var center = tessellationJob.mesh_TwoArray[x,z];
-
+                    var center = tessellationJob.mesh_TwoArray[x, z];
                     MergeNeighbor(center, x, z, center.isSingleBlend);
                 }
             }
@@ -299,12 +335,12 @@
             // mergeHolder是merge的发起方，holderx，holderz代表mergeHolder的索引
             void MergeInternal(int x, int z, MTMeshData mergeHolder, int holderx, int holderz)
             {
-                if (x < 0 || z < 0 || x >= this.xLength || z >=  this.zLength)
+                if (x < 0 || z < 0 || x >= this.xLength || z >= this.zLength)
                 {
                     return;
                 }
-                
-                var tree = m_tessellationJob.mesh_TwoArray[x,z];
+
+                var tree = m_tessellationJob.mesh_TwoArray[x, z];
 
                 if (tree != null && !tree.hasMerged && tree.isSingleBlend == singleBlend &&
                     !tree.mergedTileIndex.Contains((holderx, holderz)) && !mergeHolder.mergedTileIndex.Contains((x, z)))
@@ -316,7 +352,7 @@
                             tree.hasMerged = true;
                             tree.mergedTileIndex.Add((holderx, holderz));
                             mergeHolder.mergedTileIndex.Add((x, z));
-                            
+
                             mergeHolder.lods[0].Merge(tree.lods[0]);
                         }
                     }
@@ -330,14 +366,14 @@
                 }
             }
 
-            MergeInternal(x + 1, z, m_tessellationJob.mesh_TwoArray[x,z], x, z);
-            MergeInternal(x - 1, z, m_tessellationJob.mesh_TwoArray[x,z], x, z);
-            MergeInternal(x + 1, z + 1, m_tessellationJob.mesh_TwoArray[x,z], x, z);
-            MergeInternal(x, z + 1, m_tessellationJob.mesh_TwoArray[x,z], x, z);
-            MergeInternal(x - 1, z + 1, m_tessellationJob.mesh_TwoArray[x,z], x, z);
-            MergeInternal(x - 1, z - 1, m_tessellationJob.mesh_TwoArray[x,z], x, z);
-            MergeInternal(x, z - 1, m_tessellationJob.mesh_TwoArray[x,z], x, z);
-            MergeInternal(x + 1, z - 1, m_tessellationJob.mesh_TwoArray[x,z], x, z);
+            MergeInternal(x + 1, z, m_tessellationJob.mesh_TwoArray[x, z], x, z);
+            MergeInternal(x - 1, z, m_tessellationJob.mesh_TwoArray[x, z], x, z);
+            MergeInternal(x + 1, z + 1, m_tessellationJob.mesh_TwoArray[x, z], x, z);
+            MergeInternal(x, z + 1, m_tessellationJob.mesh_TwoArray[x, z], x, z);
+            MergeInternal(x - 1, z + 1, m_tessellationJob.mesh_TwoArray[x, z], x, z);
+            MergeInternal(x - 1, z - 1, m_tessellationJob.mesh_TwoArray[x, z], x, z);
+            MergeInternal(x, z - 1, m_tessellationJob.mesh_TwoArray[x, z], x, z);
+            MergeInternal(x + 1, z - 1, m_tessellationJob.mesh_TwoArray[x, z], x, z);
         }
 
         public void Update()
@@ -397,35 +433,6 @@
             vert.Normal = hitnormal;
             vert.UV = new Vector2(fx / maxX / gridSize[0], fz / maxZ / gridSize[1]);
             sampler.AddBoundary(subdivision, x, z, bk, vert);
-
-            // 获取splat信息
-            int targetXInSplat =
-                Mathf.FloorToInt(Mathf.Clamp((hitpos.x / terrain.terrainData.bounds.size.x * m_splatWidth), 0, 511));
-            int targetZInSplat =
-                Mathf.FloorToInt(Mathf.Clamp((hitpos.z / terrain.terrainData.bounds.size.z * m_splatHeight), 0, 511));
-
-            Debug.Log($"HIT POS : {hitpos.x:F4} targetXInSplat: {targetXInSplat}");
-
-            // TODO 临时测试
-            // 取三个通道的Weight，看谁为1
-            float targetRWeight = m_splatmapInfo[targetXInSplat, targetZInSplat, 0];
-            float targetGWeight = m_splatmapInfo[targetXInSplat, targetZInSplat, 1];
-            float targetBWeight = m_splatmapInfo[targetXInSplat, targetZInSplat, 2];
-
-            if (Mathf.Approximately(targetRWeight, 1))
-            {
-                sampler.UpdateRefTextureIndex(0);
-            }
-
-            if (Mathf.Approximately(targetGWeight, 1))
-            {
-                sampler.UpdateRefTextureIndex(1);
-            }
-
-            if (Mathf.Approximately(targetBWeight, 1))
-            {
-                sampler.UpdateRefTextureIndex(2);
-            }
         }
 
         private Vector3 AverageNormal(List<SampleVertexData> lvers)

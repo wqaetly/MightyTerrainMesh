@@ -37,7 +37,8 @@
 
             public void Merge(LOD lod)
             {
-                for (int i = 0; i < lod.faces.Count; i++)
+                // TODO 这种方式有较为严格的顺序限制，所以还是借助unity的MeshCombine处理
+                /*for (int i = 0; i < lod.faces.Count; i++)
                 {
                     lod.faces[i] += (vertices.Count);
                 }
@@ -48,10 +49,19 @@
                 normals.AddRange(lod.normals);
                 uvs.AddRange(lod.uvs);
                 
+                // 更改指针，因为mesh已合并
                 lod.vertices = vertices;
                 lod.normals = normals;
                 lod.uvs = uvs;
                 lod.faces = faces;
+                */
+
+                foreach (var target in lod.samplerTree.mergedTileIndex)
+                {
+                    samplerTree.mergedTileIndex.Add(target);
+                }
+
+                lod.samplerTree.mergedTileIndex = samplerTree.mergedTileIndex;
             }
         }
 

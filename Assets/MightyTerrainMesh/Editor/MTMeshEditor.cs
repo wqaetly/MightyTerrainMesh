@@ -239,7 +239,7 @@ public class MTMeshEditor : EditorWindow
 
                 for (int lod = 0; lod < data.lods.Length; ++lod)
                 {
-                    if (data.lods[lod] == null || data.lods[lod].samplerTree.hasMerged)
+                    if (data.lods[lod] == null)
                     {
                         continue;
                     }
@@ -279,6 +279,9 @@ public class MTMeshEditor : EditorWindow
                     mats.Add(m);
                 }
 
+                var allTile = new MeshFilter[bakers.Count];
+
+                // 组装成terrian
                 for (int i = 0; i < bakers.Count; ++i)
                 {
                     EditorUtility.DisplayProgressBar("saving data", "processing", (float)i / bakers.Count);
@@ -295,6 +298,41 @@ public class MTMeshEditor : EditorWindow
                     var renderer = meshGo.AddComponent<MeshRenderer>();
                     renderer.sharedMaterials = mats.ToArray();
                     meshGo.transform.parent = prefabRoot[baker.lod].transform;
+                    allTile[i] = filter;
+                }
+
+                // 合并terrian中的tile
+                for (int i = 0; i < dataCreateJob.LODs[0].Trees.Length; i++)
+                {
+                    var samplerTree = dataCreateJob.LODs[0].Trees[i];
+                    if (samplerTree.hasMerged && samplerTree.mergedTileIndex.Count > 1)
+                    {
+                        continue;
+                    }
+
+                    CombineInstance[] combine = new CombineInstance[samplerTree.mergedTileIndex.Count + 1];
+                    combine[0].mesh = allTile[i].sharedMesh;
+                    combine[0].transform = allTile[i].transform.localToWorldMatrix;
+
+                    int index = 1;
+                    foreach (var mergedTileInfo in samplerTree.mergedTileIndex)
+                    {
+                        combine[index].mesh =
+                            allTile[mergedTileInfo.Item1 * logLength + mergedTileInfo.Item2].sharedMesh;
+                        combine[index].transform = allTile[mergedTileInfo.Item1 * logLength + mergedTileInfo.Item2]
+                            .transform.localToWorldMatrix;
+
+                        allTile[mergedTileInfo.Item1 * logLength + mergedTileInfo.Item2].gameObject.SetActive(false);
+                        index++;
+                    }
+
+                    Mesh final = new Mesh();
+                    final.CombineMeshes(combine);
+                    
+                    AssetDatabase.CreateAsset(final, string.Format("{0}/{1}_final.mesh", "Assets", i));
+
+                    allTile[i].sharedMesh =
+                        AssetDatabase.LoadAssetAtPath<Mesh>(string.Format("{0}/{1}_final.mesh", "Assets", i));
                 }
             }
 
