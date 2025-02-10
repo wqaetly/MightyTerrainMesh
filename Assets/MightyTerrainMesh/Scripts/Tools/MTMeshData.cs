@@ -35,27 +35,31 @@
 
             public SamplerTree samplerTree;
 
+            public static bool oriMerge;
+
             public void Merge(LOD lod)
             {
-                // TODO 这种方式有较为严格的顺序限制，所以还是借助unity的MeshCombine处理
-                /*for (int i = 0; i < lod.faces.Count; i++)
+                if (oriMerge)
                 {
-                    lod.faces[i] += (vertices.Count);
+                    // TODO 这种方式有较为严格的顺序限制，所以还是借助unity的MeshCombine处理
+                    for (int i = 0; i < lod.faces.Count; i++)
+                    {
+                        lod.faces[i] += (vertices.Count);
+                    }
+
+                    faces.AddRange(lod.faces);
+                
+                    vertices.AddRange(lod.vertices);
+                    normals.AddRange(lod.normals);
+                    uvs.AddRange(lod.uvs);
+                
+                    // 更改指针，因为mesh已合并
+                    lod.vertices = vertices;
+                    lod.normals = normals;
+                    lod.uvs = uvs;
+                    lod.faces = faces;
                 }
-
-                faces.AddRange(lod.faces);
                 
-                vertices.AddRange(lod.vertices);
-                normals.AddRange(lod.normals);
-                uvs.AddRange(lod.uvs);
-                
-                // 更改指针，因为mesh已合并
-                lod.vertices = vertices;
-                lod.normals = normals;
-                lod.uvs = uvs;
-                lod.faces = faces;
-                */
-
                 foreach (var target in lod.samplerTree.mergedTileIndex)
                 {
                     samplerTree.mergedTileIndex.Add(target);
@@ -67,6 +71,9 @@
 
         public int meshId { get; private set; }
         public LOD[] lods;
+
+        public int x;
+        public int z;
 
         public MTMeshData(int id)
         {

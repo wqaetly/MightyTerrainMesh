@@ -81,8 +81,8 @@ void InitializeInputData(Varyings IN, half3 normalTS, out InputData input)
     input.fogCoord = IN.fogFactorAndVertexLight.x;
     input.vertexLighting = IN.fogFactorAndVertexLight.yzw;
 
-	//NOTE SAMPLE_GI »áµ÷ÓÃSampleSHPixelº¯Êı£¬Õâ¸öº¯ÊıÓĞÎÊÌâ£¬ÊÖ»úÉÏÊ¹ÓÃµÄÊÇEVALUATE_SH_MIXEDºê
-	//pcÊ¹ÓÃµÄÊÇEVALUATE_SH_VERTEX
+	//NOTE SAMPLE_GI ä¼šè°ƒç”¨SampleSHPixelå‡½æ•°ï¼Œè¿™ä¸ªå‡½æ•°æœ‰é—®é¢˜ï¼Œæ‰‹æœºä¸Šä½¿ç”¨çš„æ˜¯EVALUATE_SH_MIXEDå®
+	//pcä½¿ç”¨çš„æ˜¯EVALUATE_SH_VERTEX
 	#if defined(LIGHTMAP_ON)
 	input.bakedGI = SAMPLE_GI(IN.uvMainAndLM.zw, SH, input.normalWS);
 	#else

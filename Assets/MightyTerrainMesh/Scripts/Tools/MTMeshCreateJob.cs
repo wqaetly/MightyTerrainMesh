@@ -231,40 +231,56 @@
 
             // 采样splatmap，获取混合信息
             float scaleRate = gridSize.x * 1.0f / terrain.terrainData.bounds.size.x;
-            var startPoint = new Vector2(bfx, bfz) / new Vector2(terrain.terrainData.bounds.size.x, terrain.terrainData.bounds.size.z) * m_splatWidth;
+            var startPoint = new Vector2(bfx, bfz) /
+                new Vector2(terrain.terrainData.bounds.size.x, terrain.terrainData.bounds.size.z) * m_splatWidth;
             int sampleCount = Mathf.CeilToInt(scaleRate * m_splatWidth);
 
+            void SampleAndUpdateInfo(int x, int z)
+            {
+                // 获取splat信息
+                int targetXInSplat =
+                    Mathf.FloorToInt(Mathf.Clamp(startPoint.x + x, 0, 511));
+                int targetZInSplat =
+                    Mathf.FloorToInt(Mathf.Clamp((startPoint.y + z), 0,
+                        511));
+
+                // TODO 临时测试
+                // 取三个通道的Weight，看谁为1，每采样周围4个纹素，保守的保留混合区域，尽可能保证效果
+                var color = m_splatmapInfo.GetPixel(targetXInSplat, targetZInSplat);
+
+                if (color.r != 0)
+                {
+                    sampler.UpdateRefTextureIndex(0);
+                }
+
+                if (color.g != 0)
+                {
+                    sampler.UpdateRefTextureIndex(1);
+                }
+
+                if (color.b != 0)
+                {
+                    sampler.UpdateRefTextureIndex(2);
+                }
+            }
+            
             // 逐纹素采样
             for (int i = 0; i < sampleCount; i++)
             {
                 for (int j = 0; j < sampleCount; j++)
                 {
-                    // 获取splat信息
-                    int targetXInSplat =
-                        Mathf.FloorToInt(Mathf.Clamp(startPoint.x + i, 0, 511));
-                    int targetZInSplat =
-                        Mathf.FloorToInt(Mathf.Clamp((startPoint.y + j), 0,
-                            511));
+                    SampleAndUpdateInfo(i, j );
                     
-                    // TODO 临时测试
-                    // 取三个通道的Weight，看谁为1
-                    var color = m_splatmapInfo.GetPixel(targetXInSplat, targetZInSplat); 
-
-                    if (color.r != 0)
-                    {
-                        sampler.UpdateRefTextureIndex(0);
-                    }
-
-                    if (color.g != 0)
-                    {
-                        sampler.UpdateRefTextureIndex(1);
-                    }
-
-                    if (color.b != 0)
-                    {
-                        sampler.UpdateRefTextureIndex(2);
-                    }
+                    SampleAndUpdateInfo(i - 1, j - 1);
+                    SampleAndUpdateInfo(i - 1, j );
+                    SampleAndUpdateInfo(i, j - 1);
                     
+                    SampleAndUpdateInfo(i + 1, j + 1);
+                    SampleAndUpdateInfo(i + 1, j );
+                    SampleAndUpdateInfo(i, j + 1 );
+                    
+                    SampleAndUpdateInfo(i + 1, j - 1);
+                    SampleAndUpdateInfo(i - 1, j + 1);
                 }
             }
         }
@@ -310,6 +326,16 @@
             m_tessellationJob = tessellationJob;
             this.xLength = xLength;
             this.zLength = zLength;
+            
+            for (int x = 0; x < xLength; x++)
+            {
+                for (int z = 0; z < zLength; z++)
+                {
+                    var center = tessellationJob.mesh_TwoArray[x, z];
+                    center.x = x;
+                    center.z = z;
+                }
+            }
 
             for (int x = 0; x < xLength; x++)
             {
@@ -331,18 +357,85 @@
                 return;
             }
 
+            Stack<MTMeshData> tobeHandledMesh = new Stack<MTMeshData>();
+            HashSet<MTMeshData> hasVisted = new HashSet<MTMeshData>();
+            
+            hasVisted.Add(mtMeshData);
+            tobeHandledMesh.Push(mtMeshData);
+
+            while (tobeHandledMesh.Count > 0)
+            {
+                var targetToHandle = tobeHandledMesh.Peek();
+
+                var holdeer = m_tessellationJob.mesh_TwoArray[targetToHandle.x, targetToHandle.z];
+                
+                if (!MergeInternal(targetToHandle.x + 1, targetToHandle.z, holdeer))
+                {
+                    continue;
+                }
+                
+                if (!MergeInternal(targetToHandle.x - 1, targetToHandle.z, holdeer))
+                {
+                    continue;
+                }
+                
+                if (!MergeInternal(targetToHandle.x + 1, targetToHandle.z + 1, holdeer))
+                {
+                    continue;
+                }
+                
+                if (!MergeInternal(targetToHandle.x, targetToHandle.z + 1, holdeer))
+                {
+                    continue;
+                }
+                
+                if (!MergeInternal(targetToHandle.x - 1, targetToHandle.z + 1, holdeer))
+                {
+                    continue;
+                }
+                
+                if (!MergeInternal(targetToHandle.x - 1, targetToHandle.z - 1, holdeer))
+                {
+                    continue;
+                }
+                
+                if (!MergeInternal(targetToHandle.x, targetToHandle.z - 1, holdeer))
+                {
+                    continue;
+                }
+                
+                if (!MergeInternal(targetToHandle.x + 1, targetToHandle.z - 1, holdeer))
+                {
+                    continue;
+                }
+                
+                tobeHandledMesh.Pop();
+            }
+
             // x,z是mergeHolder将要merge的目标tree索引
             // mergeHolder是merge的发起方，holderx，holderz代表mergeHolder的索引
-            void MergeInternal(int x, int z, MTMeshData mergeHolder, int holderx, int holderz)
+            bool MergeInternal(int x, int z, MTMeshData mergeHolder)
             {
+                int holderx = mergeHolder.x;
+                int holderz = mergeHolder.z;
+                
                 if (x < 0 || z < 0 || x >= this.xLength || z >= this.zLength)
                 {
-                    return;
+                    return true;
                 }
 
                 var tree = m_tessellationJob.mesh_TwoArray[x, z];
 
-                if (tree != null && !tree.hasMerged && tree.isSingleBlend == singleBlend &&
+                bool visitInfo = hasVisted.Contains(tree);
+
+                if (visitInfo)
+                {
+                    return true;
+                }
+
+                if (tree != null &&
+                    (!tree.hasMerged) &&
+                    tree.isSingleBlend == singleBlend &&
                     !tree.mergedTileIndex.Contains((holderx, holderz)) && !mergeHolder.mergedTileIndex.Contains((x, z)))
                 {
                     if (singleBlend)
@@ -354,6 +447,11 @@
                             mergeHolder.mergedTileIndex.Add((x, z));
 
                             mergeHolder.lods[0].Merge(tree.lods[0]);
+
+                            if (!hasVisted.Contains(tree))
+                            {
+                                tobeHandledMesh.Push(tree);
+                            }
                         }
                     }
                     else
@@ -361,19 +459,33 @@
                         tree.hasMerged = true;
                         tree.mergedTileIndex.Add((holderx, holderz));
                         mergeHolder.mergedTileIndex.Add((x, z));
+
                         mergeHolder.lods[0].Merge(tree.lods[0]);
+
+                        if (!hasVisted.Contains(tree))
+                        {
+                            tobeHandledMesh.Push(tree);
+                        }
                     }
                 }
+                else
+                {
+                    visitInfo = true;
+                }
+                
+                hasVisted.Add(tree);
+
+                return visitInfo;
             }
 
-            MergeInternal(x + 1, z, m_tessellationJob.mesh_TwoArray[x, z], x, z);
-            MergeInternal(x - 1, z, m_tessellationJob.mesh_TwoArray[x, z], x, z);
-            MergeInternal(x + 1, z + 1, m_tessellationJob.mesh_TwoArray[x, z], x, z);
-            MergeInternal(x, z + 1, m_tessellationJob.mesh_TwoArray[x, z], x, z);
-            MergeInternal(x - 1, z + 1, m_tessellationJob.mesh_TwoArray[x, z], x, z);
-            MergeInternal(x - 1, z - 1, m_tessellationJob.mesh_TwoArray[x, z], x, z);
-            MergeInternal(x, z - 1, m_tessellationJob.mesh_TwoArray[x, z], x, z);
-            MergeInternal(x + 1, z - 1, m_tessellationJob.mesh_TwoArray[x, z], x, z);
+            /*MergeInternal(x + 1, z, m_tessellationJob.mesh_TwoArray[x, z]);
+            MergeInternal(x - 1, z, m_tessellationJob.mesh_TwoArray[x, z]);
+            MergeInternal(x + 1, z + 1, m_tessellationJob.mesh_TwoArray[x, z]);
+            MergeInternal(x, z + 1, m_tessellationJob.mesh_TwoArray[x, z]);
+            MergeInternal(x - 1, z + 1, m_tessellationJob.mesh_TwoArray[x, z]);
+            MergeInternal(x - 1, z - 1, m_tessellationJob.mesh_TwoArray[x, z]);
+            MergeInternal(x, z - 1, m_tessellationJob.mesh_TwoArray[x, z]);
+            MergeInternal(x + 1, z - 1, m_tessellationJob.mesh_TwoArray[x, z]);*/
         }
 
         public void Update()
